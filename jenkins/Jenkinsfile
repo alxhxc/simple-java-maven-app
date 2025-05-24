@@ -25,7 +25,7 @@ pipeline {
     }
 
     tools {
-        maven 'M3' // Valor fijo necesario para inicializar entorno
+        maven "${params.MAVEN_VERSION}"
     }
 
     stages {
@@ -34,19 +34,13 @@ pipeline {
                 echo "Cleaning up workspace..."
                 deleteDir()
                 // Checkout manual para volver a clonar luego de borrar todo
-                git 'https://github.com/jenkins-docs/simple-java-maven-app.git'
+                checkout scm
             }
         }
 
         stage("Build") {
             steps {
-                script {
-                    def mvnHome = tool name: "${params.MAVEN_VERSION}", type: 'maven'
-                    env.PATH = "${mvnHome}/bin:${env.PATH}"
-                }
                 echo "Building the project with Maven ${params.MAVEN_VERSION}..."
-                // Confirmá que el pom está presente
-                sh "ls -la"
                 sh "mvn clean install"
             }
         }

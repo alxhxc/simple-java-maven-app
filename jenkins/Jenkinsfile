@@ -25,7 +25,7 @@ pipeline {
     }
 
     tools {
-        maven 'M3' // Esto solo asegura que haya al menos una versión cargada.
+        maven 'M3' // Valor fijo necesario para inicializar entorno
     }
 
     stages {
@@ -33,12 +33,7 @@ pipeline {
             steps {
                 echo "Cleaning up workspace..."
                 deleteDir()
-            }
-        }
-
-        stage("Clone Repo") {
-            steps {
-                echo "Cloning Repository..."
+                // Checkout manual para volver a clonar luego de borrar todo
                 git 'https://github.com/jenkins-docs/simple-java-maven-app.git'
             }
         }
@@ -50,17 +45,16 @@ pipeline {
                     env.PATH = "${mvnHome}/bin:${env.PATH}"
                 }
                 echo "Building the project with Maven ${params.MAVEN_VERSION}..."
-                dir('simple-java-maven-app') {
-                    sh "mvn clean install"
-                }
+                // Confirmá que el pom está presente
+                sh "ls -la"
+                sh "mvn clean install"
             }
         }
 
         stage("Test") {
             steps {
-                dir('simple-java-maven-app') {
-                    sh "mvn test"
-                }
+                echo "Running tests..."
+                sh "mvn test"
             }
         }
 
@@ -91,7 +85,7 @@ pipeline {
         stage("Deployment") {
             steps {
                 echo "Proceeding with deployment ${params.DEPLOYMENT_NAME} - Version: ${params.VERSION} to ${params.ENVIRONMENT} environment..."
-                // Tu lógica de despliegue real iría aquí
+                // Acá iría tu lógica real de despliegue
             }
         }
     }

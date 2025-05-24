@@ -2,7 +2,6 @@ pipeline {
     agent any
 
     parameters {
-
         choice(
             name: 'MAVEN_VERSION',
             choices: ['M3'],
@@ -13,24 +12,20 @@ pipeline {
             choices: ['DEV', 'UAT', 'PROD'],
             description: 'Select environment for deployment'
         )
-
         string(
             name: 'DEPLOYMENT_NAME',
             defaultValue: 'defaultDeployment',
             description: 'Deployment Name'
         )
-
         string(
             name: 'VERSION',
             defaultValue: '0.0.0',
             description: 'Version of the application'
         )
-
-
     }
 
     tools {
-        maven "${params.MAVEN_VERSION}"
+        maven 'M3' // Esto solo asegura que haya al menos una versión cargada.
     }
 
     stages {
@@ -41,35 +36,33 @@ pipeline {
             }
         }
 
+        stage("Clone Repo") {
+            steps {
+                echo "Cloning Repository..."
+                git 'https://github.com/jenkins-docs/simple-java-maven-app.git'
+            }
+        }
+
         stage("Build") {
             steps {
+                script {
+                    def mvnHome = tool name: "${params.MAVEN_VERSION}", type: 'maven'
+                    env.PATH = "${mvnHome}/bin:${env.PATH}"
+                }
                 echo "Building the project with Maven ${params.MAVEN_VERSION}..."
-                sh "mvn clean install"
+                dir('simple-java-maven-app') {
+                    sh "mvn clean install"
+                }
             }
         }
 
         stage("Test") {
             steps {
-                echo "Running tests..."
-                sh "mvn test"
-            }
-        }
-
-/*         stage("Confirm Deployment (only for PROD)") {
-            when {
-                expression { return params.ENVIRONMENT == 'PROD' }
-            }
-            steps {
-                script {
-                    input(
-                        id: 'confirmDeploy',
-                        message: "You are about to deploy to *PROD* the '${params.VERSION}'. Confirm to continue:",
-                        ok: 'Deploy to PROD'
-                        cancel: 'Abort Deployment to ${params.ENVIRONMENT}',
-                    )
+                dir('simple-java-maven-app') {
+                    sh "mvn test"
                 }
             }
-        }  */
+        }
 
         stage("Confirm Deployment (For PROD Only)") {
             when {
@@ -88,13 +81,9 @@ pipeline {
                         ]
                     )
 
-                    if (userChoice == 'Yes') {
-                        echo "User confirmed deployment to ${params.ENVIRONMENT} - ${params.VERSION}."
-                    } else {
-                        echo "User chose not to proceed with deployment."	
+                    if (userChoice != 'Yes') {
                         error("Deployment to ${params.ENVIRONMENT} - ${params.VERSION} was cancelled by the user.")
-                        currentBuild.result = 'ABORTED'
-                    }	
+                    }
                 }
             }
         }
@@ -102,8 +91,7 @@ pipeline {
         stage("Deployment") {
             steps {
                 echo "Proceeding with deployment ${params.DEPLOYMENT_NAME} - Version: ${params.VERSION} to ${params.ENVIRONMENT} environment..."
-                // Aquí iría la lógica real de despliegue, como:
-                // sh "./deploy.sh ${params.DEPLOYMENT_NAME} ${params.VERSION} ${params.ENVIRONMENT}"
+                // Tu lógica de despliegue real iría aquí
             }
         }
     }
